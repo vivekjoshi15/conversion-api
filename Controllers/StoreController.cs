@@ -49,46 +49,56 @@ namespace conversion_api.Controllers
                 return BadRequest(ModelState);
             }
 
-            var Store = await _context.Stores.FindAsync(id);
+            var store = await _context.Stores.FindAsync(id);
 
-            if (Store == null)
+            if (store == null)
             {
                 return NotFound();
             }
 
-            return Ok(Store);
+            return Ok(store);
         }
 
         // PUT: api/Store/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutStore([FromRoute] int id, [FromBody] Store Store)
+        public async Task<IActionResult> PutStore([FromRoute] int id, [FromBody] Store store)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            if (id != Store.Id)
+            if (id != store.Id)
             {
                 return BadRequest();
             }
 
-            Store.ModifiedDate = DateTime.Now;
-            _context.Entry(Store).State = EntityState.Modified;
-
-            try
+            Store storeObj = _context.Stores.FirstOrDefault(e => e.Id == id);
+            if (storeObj != null)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!StoreExists(id))
+                if (string.IsNullOrWhiteSpace(store.UniqueUrl))
                 {
-                    return NotFound();
+                    store.UniqueUrl = "";
                 }
-                else
+
+                store.CreatedDate = storeObj.CreatedDate;
+                store.ModifiedDate = DateTime.Now;
+                _context.Entry(store).State = EntityState.Modified;
+
+                try
                 {
-                    throw;
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!StoreExists(id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
 
@@ -97,18 +107,78 @@ namespace conversion_api.Controllers
 
         // POST: api/Store
         [HttpPost]
-        public async Task<IActionResult> PostStore([FromBody] Store Store)
+        public async Task<IActionResult> PostStore([FromBody] Store store)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            Store.CreatedDate = DateTime.Now;
-            _context.Stores.Add(Store);
+            store.UniqueUrl = "";
+            store.CreatedDate = DateTime.Now;
+            _context.Stores.Add(store);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetStore", new { id = Store.Id }, Store);
+            return CreatedAtAction("GetStore", new { id = store.Id }, store);
+        }
+
+        // POST: api/Store/bulkStoreUpload
+        [HttpPut("bulkStoreUpload/{id}")]
+        public async Task<StoreResult> BulkStoreUpload([FromRoute] int id, [FromBody] List<Store> stores)
+        {
+            StoreResult result = new StoreResult();
+            try
+            {
+
+
+                if (id > 0 && stores.Count > 0)
+                {
+                    List<Store> validStores = new();
+                    List<Store> invalidStores = new();
+                    List<string> storeIds = new();
+
+                    List<Store> cStores = _context.Stores.Where(c => c.IsDelete != 1 && c.CompanyId == id).ToList();
+                    foreach (var store in stores)
+                    {
+                        if (!storeIds.Contains(store.StoreId) && !StoreIdExists(store.StoreId, id, cStores))
+                        {
+                            store.CreatedDate = DateTime.Now;
+                            store.UniqueUrl = "";
+
+                            validStores.Add(store);
+                            storeIds.Add(store.StoreId);
+                        }
+                        else
+                        {
+                            invalidStores.Add(store);
+                        }
+                    }
+
+                    if (validStores.Count > 0)
+                    {
+                        _context.Stores.AddRange(validStores);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    result.message = "success";
+                    result.validStores = validStores;
+                    result.invalidStores = invalidStores;
+                }
+                else
+                {
+                    result.message = "no valid store";
+                    result.validStores = new();
+                    result.invalidStores = new();
+                }
+            }
+            catch(Exception ex)
+            {
+                result.message = "error while uploading stores, "+ ex.Message;
+                result.validStores = new();
+                result.invalidStores = new();
+            }
+
+            return result;
         }
 
         // DELETE: api/Store/5
@@ -147,9 +217,21 @@ namespace conversion_api.Controllers
             return Ok(Store);
         }
 
+        private bool StoreIdExists(string storeId, int companyId, List<Store> cStores)
+        {
+            return cStores.Any(e => e.CompanyId == companyId && e.StoreId == storeId);
+        }
+
         private bool StoreExists(long id)
         {
             return _context.Stores.Any(e => e.Id == id);
         }
+    }
+
+    public class StoreResult
+    {        
+        public string message { get; set; }
+        public List<Store> validStores { get; set; }
+        public List<Store> invalidStores { get; set; }
     }
 }

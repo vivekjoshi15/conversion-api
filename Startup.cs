@@ -11,7 +11,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using conversion_api.Models;
 
 namespace conversion_api
@@ -36,7 +35,10 @@ namespace conversion_api
 
             services.AddMemoryCache();
             services.AddDistributedMemoryCache();
-            services.AddControllers();
+            services.AddControllers()
+                    .AddNewtonsoftJson(options =>
+                        options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+                    );
 
             services.AddSession(options =>
             {

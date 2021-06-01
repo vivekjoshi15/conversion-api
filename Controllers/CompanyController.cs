@@ -66,22 +66,27 @@ namespace conversion_api.Controllers
                 return BadRequest();
             }
 
-            company.ModifiedDate = DateTime.Now;
-            _context.Entry(company).State = EntityState.Modified;
+            Company companyObj = _context.Companies.FirstOrDefault(e => e.Id == id);
+            if (companyObj != null)
+            {
+                company.CreatedDate = companyObj.CreatedDate;
+                company.ModifiedDate = DateTime.Now;
+                _context.Entry(company).State = EntityState.Modified;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CompanyExists(id))
+                try
                 {
-                    return NotFound();
+                    await _context.SaveChangesAsync();
                 }
-                else
+                catch (DbUpdateConcurrencyException)
                 {
-                    throw;
+                    if (!CompanyExists(id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
 

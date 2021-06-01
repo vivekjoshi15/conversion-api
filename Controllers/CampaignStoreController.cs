@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using conversion_api.Models;
+using conversion_api.Utilities;
 
 namespace conversion_api.Controllers
 {
@@ -31,13 +32,6 @@ namespace conversion_api.Controllers
         public IEnumerable<CampaignStore> GetCampaignStore()
         {
             return _context.CampaignStores.Where(c => c.IsDelete != 1).ToList();
-        }
-
-        // GET: api/Store
-        [HttpGet("getStoreCampaigns/{id}/{campaignId}")]
-        public IEnumerable<CampaignStore> GetStoreCampaigns([FromRoute] int id, [FromRoute] int campaignId)
-        {
-            return _context.CampaignStores.Where(c => c.IsDelete != 1 && c.StoreId == id && c.CampaignId == campaignId).ToList();
         }
 
         // GET: api/CampaignStore/5
@@ -148,6 +142,562 @@ namespace conversion_api.Controllers
         private bool CampaignStoreExists(long id)
         {
             return _context.CampaignStores.Any(e => e.Id == id);
+        }
+
+        // GET: api/CampaignStore
+        [HttpGet("getStoreCampaigns/{id}/{campaignId}")]
+        public IEnumerable<CampaignStore> GetStoreCampaigns([FromRoute] int id, [FromRoute] int campaignId)
+        {
+            return _context.CampaignStores.Where(c => c.IsDelete != 1 && c.StoreId == id && c.CampaignId == campaignId).ToList();
+        }
+
+        // GET: api/CampaignStore
+        [HttpGet("getCampaignStoreByShortCode/{shortCode}")]
+        public CampaignStore GetCampaignStore([FromRoute] string shortCode)
+        {
+            return _context.CampaignStores.FirstOrDefault(c => c.IsDelete != 1 && c.ShortCode == shortCode);
+        }
+
+        // GET: api/CampaignStore
+        [HttpGet("getCampaignStores/{companyId}/{id}")]
+        public IEnumerable<CampaignStoreData> GetCampaignStores([FromRoute] int companyId, [FromRoute] int id)
+        {
+            List<CampaignStoreData> campaignStoresData = new();
+
+            try
+            {
+                List<CampaignStore> campStores = _context.CampaignStores.Where(c => c.IsDelete != 1 && c.CampaignId == id).ToList();
+                List<Store> cStores = _context.Stores.Where(c => c.IsDelete != 1 && c.CompanyId == companyId).ToList();
+
+                foreach (var store in campStores)
+                {
+                    string storeId = cStores.FirstOrDefault(s => s.Id == store.StoreId).StoreId;
+
+                    CampaignStoreData campaignStoreData = new();
+                    campaignStoreData.Id = store.Id;
+                    campaignStoreData.CampaignId = store.CampaignId;
+                    campaignStoreData.UniqueUrl = store.UniqueUrl;
+                    campaignStoreData.IsActive = store.IsActive;
+                    campaignStoreData.StoreId = storeId;
+
+                    List<CampaignStoreModule> campaignStoreModules = _context.CampaignStoreModules.Where(c => c.IsDelete != 1 && c.CampaignStoreId == store.Id && c.CampaignId == id).ToList();
+
+                    foreach (var campaignStoreModule in campaignStoreModules)
+                    {
+                        if (campaignStoreModule.ModuleId == 1)
+                        {
+                            campaignStoreData.Module1 = campaignStoreModule.Content;
+                        }
+                        else if (campaignStoreModule.ModuleId == 2)
+                        {
+                            campaignStoreData.Module2 = campaignStoreModule.Content;
+                        }
+                        else if (campaignStoreModule.ModuleId == 3)
+                        {
+                            campaignStoreData.Module3 = campaignStoreModule.Content;
+                        }
+                        else if (campaignStoreModule.ModuleId == 4)
+                        {
+                            campaignStoreData.Module4 = campaignStoreModule.Content;
+                        }
+                        else if (campaignStoreModule.ModuleId == 5)
+                        {
+                            campaignStoreData.Module5 = campaignStoreModule.Content;
+                        }
+                        else if (campaignStoreModule.ModuleId == 6)
+                        {
+                            campaignStoreData.Module6 = campaignStoreModule.Content;
+                        }
+                        else if (campaignStoreModule.ModuleId == 7)
+                        {
+                            campaignStoreData.Module7 = campaignStoreModule.Content;
+                        }
+                        else if (campaignStoreModule.ModuleId == 8)
+                        {
+                            campaignStoreData.Module8 = campaignStoreModule.Content;
+                        }
+                    }
+
+                    campaignStoresData.Add(campaignStoreData);
+                }
+            }
+            catch
+            { }
+
+            return campaignStoresData;
+        }
+
+        // PUT: api/CampaignStore/5
+        [HttpPut("updateCampaignStoreModules/{id}")]
+        public async Task<IActionResult> UpdateCampaignStoreModules([FromRoute] int id, [FromBody] CampaignStoreData campaignStoreData)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (id != campaignStoreData.Id)
+            {
+                return BadRequest();
+            }
+
+            CampaignStore campaignStore = _context.CampaignStores.FirstOrDefault(s => s.Id == campaignStoreData.Id);
+            if (campaignStore != null)
+            {
+                int storeId = _context.Stores.FirstOrDefault(s => s.StoreId == campaignStoreData.StoreId).Id;
+
+                campaignStore.StoreId = storeId;
+                campaignStore.CampaignId = campaignStoreData.CampaignId;
+                campaignStore.UniqueUrl = campaignStoreData.UniqueUrl;
+                campaignStore.IsActive = campaignStoreData.IsActive;
+                _context.Entry(campaignStore).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                List<CampaignStoreModule> campaignStoreModules = new();
+                List<CampaignStoreModule> eCampaignStoreModules = _context.CampaignStoreModules.Where(c => c.IsDelete != 1 && c.CampaignStoreId == campaignStore.Id && c.CampaignId == id).ToList();
+                
+                CampaignStoreModule campaignStoreModule = eCampaignStoreModules.FirstOrDefault(c => c.ModuleId == 1);
+                if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+                {
+                    if (campaignStoreModule == null)
+                    {
+                        campaignStoreModule = new();
+                        campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                        campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                        campaignStoreModule.StoreId = campaignStore.StoreId;
+                        campaignStoreModule.ModuleId = 1;
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        campaignStoreModule.IsActive = 1;
+
+                        campaignStoreModules.Add(campaignStoreModule);
+                    }
+                    else
+                    {
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    if (campaignStoreModule != null)
+                    {
+                        campaignStoreModule.IsDelete = 1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                campaignStoreModule = eCampaignStoreModules.FirstOrDefault(c => c.ModuleId == 2);
+                if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+                {
+                    if (campaignStoreModule == null)
+                    {
+                        campaignStoreModule = new();
+                        campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                        campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                        campaignStoreModule.StoreId = campaignStore.StoreId;
+                        campaignStoreModule.ModuleId = 2;
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        campaignStoreModule.IsActive = 1;
+
+                        campaignStoreModules.Add(campaignStoreModule);
+                    }
+                    else
+                    {
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    if (campaignStoreModule != null)
+                    {
+                        campaignStoreModule.IsDelete = 1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                campaignStoreModule = eCampaignStoreModules.FirstOrDefault(c => c.ModuleId == 3);
+                if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+                {
+                    if (campaignStoreModule == null)
+                    {
+                        campaignStoreModule = new();
+                        campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                        campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                        campaignStoreModule.StoreId = campaignStore.StoreId;
+                        campaignStoreModule.ModuleId = 3;
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        campaignStoreModule.IsActive = 1;
+
+                        campaignStoreModules.Add(campaignStoreModule);
+                    }
+                    else
+                    {
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    if (campaignStoreModule != null)
+                    {
+                        campaignStoreModule.IsDelete = 1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                campaignStoreModule = eCampaignStoreModules.FirstOrDefault(c => c.ModuleId == 4);
+                if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+                {
+                    if (campaignStoreModule == null)
+                    {
+                        campaignStoreModule = new();
+                        campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                        campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                        campaignStoreModule.StoreId = campaignStore.StoreId;
+                        campaignStoreModule.ModuleId = 4;
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        campaignStoreModule.IsActive = 1;
+
+                        campaignStoreModules.Add(campaignStoreModule);
+                    }
+                    else
+                    {
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    if (campaignStoreModule != null)
+                    {
+                        campaignStoreModule.IsDelete = 1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                campaignStoreModule = eCampaignStoreModules.FirstOrDefault(c => c.ModuleId == 5);
+                if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+                {
+                    if (campaignStoreModule == null)
+                    {
+                        campaignStoreModule = new();
+                        campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                        campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                        campaignStoreModule.StoreId = campaignStore.StoreId;
+                        campaignStoreModule.ModuleId = 5;
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        campaignStoreModule.IsActive = 1;
+
+                        campaignStoreModules.Add(campaignStoreModule);
+                    }
+                    else
+                    {
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    if (campaignStoreModule != null)
+                    {
+                        campaignStoreModule.IsDelete = 1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                campaignStoreModule = eCampaignStoreModules.FirstOrDefault(c => c.ModuleId == 6);
+                if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+                {
+                    if (campaignStoreModule == null)
+                    {
+                        campaignStoreModule = new();
+                        campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                        campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                        campaignStoreModule.StoreId = campaignStore.StoreId;
+                        campaignStoreModule.ModuleId = 6;
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        campaignStoreModule.IsActive = 1;
+
+                        campaignStoreModules.Add(campaignStoreModule);
+                    }
+                    else
+                    {
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    if (campaignStoreModule != null)
+                    {
+                        campaignStoreModule.IsDelete = 1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                campaignStoreModule = eCampaignStoreModules.FirstOrDefault(c => c.ModuleId == 7);
+                if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+                {
+                    if (campaignStoreModule == null)
+                    {
+                        campaignStoreModule = new();
+                        campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                        campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                        campaignStoreModule.StoreId = campaignStore.StoreId;
+                        campaignStoreModule.ModuleId = 7;
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        campaignStoreModule.IsActive = 1;
+
+                        campaignStoreModules.Add(campaignStoreModule);
+                    }
+                    else
+                    {
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    if (campaignStoreModule != null)
+                    {
+                        campaignStoreModule.IsDelete = 1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                campaignStoreModule = eCampaignStoreModules.FirstOrDefault(c => c.ModuleId == 8);
+                if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+                {
+                    if (campaignStoreModule == null)
+                    {
+                        campaignStoreModule = new();
+                        campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                        campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                        campaignStoreModule.StoreId = campaignStore.StoreId;
+                        campaignStoreModule.ModuleId = 8;
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        campaignStoreModule.IsActive = 1;
+
+                        campaignStoreModules.Add(campaignStoreModule);
+                    }
+                    else
+                    {
+                        campaignStoreModule.Content = campaignStoreData.Module1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    if (campaignStoreModule != null)
+                    {
+                        campaignStoreModule.IsDelete = 1;
+                        _context.Entry(campaignStoreModule).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                _context.CampaignStoreModules.AddRange(campaignStoreModules);
+                await _context.SaveChangesAsync();
+            }
+
+            return NoContent();
+        }
+
+        // POST: api/CampaignStore
+        [HttpPost("createCampaignStoreModules")]
+        public async Task<IActionResult> CreateCampaignStoreModules([FromBody] CampaignStoreData campaignStoreData)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            int storeId = _context.Stores.FirstOrDefault(s => s.StoreId == campaignStoreData.StoreId).Id;
+
+            CampaignStore campaignStore = new CampaignStore();
+            campaignStore.StoreId = storeId;
+            campaignStore.CampaignId = campaignStoreData.CampaignId;
+            campaignStore.UniqueUrl = "";
+            campaignStore.IsActive = 1;
+
+            _context.CampaignStores.Add(campaignStore);
+            await _context.SaveChangesAsync();
+
+            string uniqueUrl = "https://conversion.mobeomedia.com/#/" + Helper.GetRandomString(6) + "_" + campaignStore.Id;
+            campaignStore.UniqueUrl = Helper.GenerateShortUrl(uniqueUrl);
+            _context.Entry(campaignStore).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            campaignStore.UniqueUrl = Helper.GenerateShortUrl(uniqueUrl);
+
+            List<CampaignStoreModule> campaignStoreModules = new();
+
+            if (!string.IsNullOrEmpty(campaignStoreData.Module1))
+            {
+                CampaignStoreModule campaignStoreModule = new CampaignStoreModule();
+                campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                campaignStoreModule.StoreId = campaignStore.StoreId;
+                campaignStoreModule.ModuleId = 1;
+                campaignStoreModule.Content = campaignStoreData.Module1;
+                campaignStoreModule.IsActive = 1;
+
+                campaignStoreModules.Add(campaignStoreModule);
+            }
+
+            if (!string.IsNullOrEmpty(campaignStoreData.Module2))
+            {
+                CampaignStoreModule campaignStoreModule = new CampaignStoreModule();
+                campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                campaignStoreModule.StoreId = campaignStore.StoreId;
+                campaignStoreModule.ModuleId = 2;
+                campaignStoreModule.Content = campaignStoreData.Module2;
+                campaignStoreModule.IsActive = 1;
+
+                campaignStoreModules.Add(campaignStoreModule);
+            }
+
+            if (!string.IsNullOrEmpty(campaignStoreData.Module3))
+            {
+                CampaignStoreModule campaignStoreModule = new CampaignStoreModule();
+                campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                campaignStoreModule.StoreId = campaignStore.StoreId;
+                campaignStoreModule.ModuleId = 3;
+                campaignStoreModule.Content = campaignStoreData.Module3;
+                campaignStoreModule.IsActive = 1;
+
+                campaignStoreModules.Add(campaignStoreModule);
+            }
+
+            if (!string.IsNullOrEmpty(campaignStoreData.Module4))
+            {
+                CampaignStoreModule campaignStoreModule = new CampaignStoreModule();
+                campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                campaignStoreModule.StoreId = campaignStore.StoreId;
+                campaignStoreModule.ModuleId = 4;
+                campaignStoreModule.Content = campaignStoreData.Module4;
+                campaignStoreModule.IsActive = 1;
+
+                campaignStoreModules.Add(campaignStoreModule);
+            }
+
+            if (!string.IsNullOrEmpty(campaignStoreData.Module5))
+            {
+                CampaignStoreModule campaignStoreModule = new CampaignStoreModule();
+                campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                campaignStoreModule.StoreId = campaignStore.StoreId;
+                campaignStoreModule.ModuleId = 5;
+                campaignStoreModule.Content = campaignStoreData.Module5;
+                campaignStoreModule.IsActive = 1;
+
+                campaignStoreModules.Add(campaignStoreModule);
+            }
+
+            if (!string.IsNullOrEmpty(campaignStoreData.Module6))
+            {
+                CampaignStoreModule campaignStoreModule = new CampaignStoreModule();
+                campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                campaignStoreModule.StoreId = campaignStore.StoreId;
+                campaignStoreModule.ModuleId = 6;
+                campaignStoreModule.Content = campaignStoreData.Module6;
+                campaignStoreModule.IsActive = 1;
+
+                campaignStoreModules.Add(campaignStoreModule);
+            }
+
+            if (!string.IsNullOrEmpty(campaignStoreData.Module7))
+            {
+                CampaignStoreModule campaignStoreModule = new CampaignStoreModule();
+                campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                campaignStoreModule.StoreId = campaignStore.StoreId;
+                campaignStoreModule.ModuleId = 7;
+                campaignStoreModule.Content = campaignStoreData.Module7;
+                campaignStoreModule.IsActive = 1;
+
+                campaignStoreModules.Add(campaignStoreModule);
+            }
+
+            if (!string.IsNullOrEmpty(campaignStoreData.Module8))
+            {
+                CampaignStoreModule campaignStoreModule = new CampaignStoreModule();
+                campaignStoreModule.CampaignStoreId = campaignStore.Id;
+                campaignStoreModule.CampaignId = campaignStoreData.CampaignId;
+                campaignStoreModule.StoreId = campaignStore.StoreId;
+                campaignStoreModule.ModuleId = 8;
+                campaignStoreModule.Content = campaignStoreData.Module8;
+                campaignStoreModule.IsActive = 1;
+
+                campaignStoreModules.Add(campaignStoreModule);
+            }
+
+            _context.CampaignStoreModules.AddRange(campaignStoreModules);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetCampaignStore", new { id = campaignStore.Id }, campaignStore);
+        }
+
+        // DELETE: api/CampaignStore/5
+        [HttpDelete("deleteCampaignStoreModules/{id}")]
+        public async Task<IActionResult> DeleteCampaignStoreModules([FromRoute] int id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var CampaignStore = await _context.CampaignStores.FindAsync(id);
+            if (CampaignStore == null)
+            {
+                return NotFound();
+            }
+
+            List<CampaignStoreModule> campaignStoreModules = _context.CampaignStoreModules.Where(c => c.IsDelete != 1 && c.CampaignId == id).ToList();
+
+            campaignStoreModules.ForEach(c => c.IsDelete = 1);
+            _context.Entry(campaignStoreModules).State = EntityState.Modified;
+
+            CampaignStore.IsDelete = 1;
+            _context.Entry(CampaignStore).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!CampaignStoreExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return Ok(CampaignStore);
         }
     }
 }

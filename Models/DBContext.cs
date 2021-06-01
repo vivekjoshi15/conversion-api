@@ -29,7 +29,6 @@ namespace conversion_api.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                //optionsBuilder.UseMySql("server=conversion.cy5w2ebrtwuu.us-east-1.rds.amazonaws.com;port=3306;user=admin;password=0722ad93;database=conversion", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.20-mysql"));
             }
         }
 
@@ -111,6 +110,16 @@ namespace conversion_api.Models
 
                 entity.Property(e => e.StoreId).HasColumnName("store_id");
 
+                entity.Property(e => e.UniqueUrl)
+                    .IsRequired()
+                    .HasMaxLength(2000)
+                    .HasColumnName("unique_url");
+
+                entity.Property(e => e.ShortCode)
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnName("short_code");
+
                 entity.Property(e => e.IsActive).HasColumnName("is_active");
 
                 entity.Property(e => e.IsDelete).HasColumnName("is_delete");
@@ -145,6 +154,10 @@ namespace conversion_api.Models
                 entity.Property(e => e.CampaignStoreId).HasColumnName("campaign_store_id");
 
                 entity.Property(e => e.ModuleId).HasColumnName("module_id");
+
+                entity.Property(e => e.Content)
+                    .HasMaxLength(2000)
+                    .HasColumnName("content");
 
                 entity.Property(e => e.StoreId).HasColumnName("store_id");
 

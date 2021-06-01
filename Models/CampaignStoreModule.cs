@@ -12,6 +12,7 @@ namespace conversion_api.Models
         public int CampaignId { get; set; }
         public int StoreId { get; set; }
         public int ModuleId { get; set; }
+        public string Content { get; set; }
         public sbyte? IsActive { get; set; }
         public sbyte? IsDelete { get; set; }
 
