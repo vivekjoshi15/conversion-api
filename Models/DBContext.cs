@@ -24,6 +24,8 @@ namespace conversion_api.Models
         public virtual DbSet<Module> Modules { get; set; }
         public virtual DbSet<ModuleContact> ModuleContacts { get; set; }
         public virtual DbSet<Store> Stores { get; set; }
+        public virtual DbSet<ContentBlock> ContentBlocks { get; set; }
+        public virtual DbSet<CampaignStatistic> CampaignStatistics { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -156,8 +158,7 @@ namespace conversion_api.Models
                 entity.Property(e => e.ModuleId).HasColumnName("module_id");
 
                 entity.Property(e => e.Content)
-                    .HasMaxLength(2000)
-                    .HasColumnName("content");
+                    .HasColumnName("content").HasColumnType("longText");
 
                 entity.Property(e => e.StoreId).HasColumnName("store_id");
 
@@ -393,6 +394,76 @@ namespace conversion_api.Models
                     .HasForeignKey(d => d.CompanyId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("company_store");
+            });
+
+            modelBuilder.Entity<ContentBlock>(entity =>
+            {
+                entity.ToTable("content_block");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.IsDelete).HasColumnName("is_delete");
+
+                entity.Property(e => e.Content)
+                    .HasColumnName("content").HasColumnType("longText");
+
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+
+                entity.Property(e => e.CreatedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("created_date");
+
+                entity.Property(e => e.ModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("modified_date");
+            });
+
+            modelBuilder.Entity<CampaignStatistic>(entity =>
+            {
+                entity.ToTable("campaign_statistic");
+
+                entity.HasIndex(e => e.CampaignId, "cms_campaign_idx");
+
+                entity.HasIndex(e => e.StoreId, "cms_store_idx");
+
+                entity.HasIndex(e => e.ModuleId, "cms_module_idx");
+
+                entity.HasIndex(e => e.CampaignStoreId, "cms_campaign_store");
+
+                entity.HasIndex(e => e.CampaignStoreModuleId, "cms_campaign_store_module_idx");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.CampaignId).HasColumnName("campaign_id");
+
+                entity.Property(e => e.StoreId).HasColumnName("store_id");
+
+                entity.Property(e => e.ModuleId).HasColumnName("module_id");
+
+                entity.Property(e => e.CampaignStoreId).HasColumnName("campaign_store_id");
+
+                entity.Property(e => e.CampaignStoreModuleId).HasColumnName("campaign_store_module_id");
+
+                entity.Property(e => e.Browser)
+                    .IsRequired()
+                    .HasMaxLength(500)
+                    .HasColumnName("browser");
+
+                entity.Property(e => e.IPAddress)
+                    .IsRequired()
+                    .HasMaxLength(30)
+                    .HasColumnName("ip_address");
+
+                entity.Property(e => e.OS)
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnName("os");
+
+                entity.Property(e => e.CreatedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("created_date");
             });
 
             OnModelCreatingPartial(modelBuilder);

@@ -38,7 +38,7 @@ namespace conversion_api.Controllers
         [HttpGet("getCompanyCampaigns/{id}")]
         public IEnumerable<Campaign> GetCompanyCampaigns([FromRoute] int id)
         {
-            return _context.Campaigns.Include(i => i.CampaignStores).Where(c => c.IsDelete != 1 && c.CompanyId == id).ToList();
+            return _context.Campaigns.Include(i => i.CampaignStores.Where(cs=>cs.IsDelete != 1)).Where(c => c.IsDelete != 1 && c.CompanyId == id).ToList();
         }
 
         // GET: api/Campaign/5
@@ -132,29 +132,38 @@ namespace conversion_api.Controllers
 
                     List<Store> cStores = _context.Stores.Where(c => c.IsDelete != 1 && c.CompanyId == companyId).ToList();
                     List<CampaignStore> campStores = _context.CampaignStores.Where(c => c.IsDelete != 1 && c.CampaignId == id).ToList();
-                    
+
                     foreach (var store in stores)
                     {
-                        int storeId = cStores.FirstOrDefault(s => s.StoreId == store.StoreId).Id;
-                        CampaignStore cs = CampaignStoreExists(storeId, id, campStores);
-                        if (!storeIds.Contains(store.StoreId) && StoreIdExists(store.StoreId, companyId, cStores) && cs == null)
+                        Store store1 = cStores.FirstOrDefault(s => s.StoreId == store.StoreId);
+                        if (store1 != null)
                         {
-                            store.UniqueUrl = "";
-                            store.IsActive = 1;
-                            validCampaignStores.Add(store);
-                            storeIds.Add(store.StoreId);
-                        }
-                        else
-                        {
-                            if (cs != null)
+                            int storeId = store1.Id;
+                            CampaignStore cs = CampaignStoreExists(storeId, id, campStores);
+                            if (!storeIds.Contains(store.StoreId) && StoreIdExists(store.StoreId, companyId, cStores) && cs == null)
                             {
-                                store.UniqueUrl = cs.UniqueUrl;
-                                store.Message = "StoreId already added to this campaign";
+                                store.UniqueUrl = "";
+                                store.IsActive = 1;
+                                validCampaignStores.Add(store);
+                                storeIds.Add(store.StoreId);
                             }
                             else
                             {
-                                store.Message = "Invalid StoreId";
+                                if (cs != null)
+                                {
+                                    store.UniqueUrl = cs.UniqueUrl;
+                                    store.Message = "StoreId already added to this campaign";
+                                }
+                                else
+                                {
+                                    store.Message = "Invalid StoreId";
+                                }
+                                invalidCampaignStores.Add(store);
                             }
+                        }
+                        else
+                        {
+                            store.Message = "Invalid StoreId";
                             invalidCampaignStores.Add(store);
                         }
                     }
@@ -171,6 +180,7 @@ namespace conversion_api.Controllers
                             campaignStore.StoreId = storeId;
                             campaignStore.CampaignId = id;
                             campaignStore.UniqueUrl = "";
+                            campaignStore.ShortCode = "";
                             campaignStore.IsActive = 1;
 
                             _context.CampaignStores.Add(campaignStore);
@@ -183,7 +193,7 @@ namespace conversion_api.Controllers
                             _context.Entry(campaignStore).State = EntityState.Modified;
                             await _context.SaveChangesAsync();
 
-                            store.UniqueUrl = Helper.GenerateShortUrl(uniqueUrl);
+                            store.UniqueUrl = campaignStore.UniqueUrl;
 
                             List<CampaignStoreModule> campaignStoreModules = new();
 
@@ -206,7 +216,7 @@ namespace conversion_api.Controllers
                                 campaignStoreModule.CampaignStoreId = campaignStore.Id;
                                 campaignStoreModule.CampaignId = id;
                                 campaignStoreModule.StoreId = campaignStore.StoreId;
-                                campaignStoreModule.ModuleId = 2;
+                                campaignStoreModule.ModuleId = 3;
                                 campaignStoreModule.Content = store.Module2;
                                 campaignStoreModule.IsActive = 1;
 
@@ -219,7 +229,7 @@ namespace conversion_api.Controllers
                                 campaignStoreModule.CampaignStoreId = campaignStore.Id;
                                 campaignStoreModule.CampaignId = id;
                                 campaignStoreModule.StoreId = campaignStore.StoreId;
-                                campaignStoreModule.ModuleId = 3;
+                                campaignStoreModule.ModuleId = 4;
                                 campaignStoreModule.Content = store.Module3;
                                 campaignStoreModule.IsActive = 1;
 
@@ -232,7 +242,7 @@ namespace conversion_api.Controllers
                                 campaignStoreModule.CampaignStoreId = campaignStore.Id;
                                 campaignStoreModule.CampaignId = id;
                                 campaignStoreModule.StoreId = campaignStore.StoreId;
-                                campaignStoreModule.ModuleId = 4;
+                                campaignStoreModule.ModuleId = 5;
                                 campaignStoreModule.Content = store.Module4;
                                 campaignStoreModule.IsActive = 1;
 
@@ -245,7 +255,7 @@ namespace conversion_api.Controllers
                                 campaignStoreModule.CampaignStoreId = campaignStore.Id;
                                 campaignStoreModule.CampaignId = id;
                                 campaignStoreModule.StoreId = campaignStore.StoreId;
-                                campaignStoreModule.ModuleId = 5;
+                                campaignStoreModule.ModuleId = 6;
                                 campaignStoreModule.Content = store.Module5;
                                 campaignStoreModule.IsActive = 1;
 
@@ -258,7 +268,7 @@ namespace conversion_api.Controllers
                                 campaignStoreModule.CampaignStoreId = campaignStore.Id;
                                 campaignStoreModule.CampaignId = id;
                                 campaignStoreModule.StoreId = campaignStore.StoreId;
-                                campaignStoreModule.ModuleId = 6;
+                                campaignStoreModule.ModuleId = 7;
                                 campaignStoreModule.Content = store.Module6;
                                 campaignStoreModule.IsActive = 1;
 
@@ -271,7 +281,7 @@ namespace conversion_api.Controllers
                                 campaignStoreModule.CampaignStoreId = campaignStore.Id;
                                 campaignStoreModule.CampaignId = id;
                                 campaignStoreModule.StoreId = campaignStore.StoreId;
-                                campaignStoreModule.ModuleId = 7;
+                                campaignStoreModule.ModuleId = 8;
                                 campaignStoreModule.Content = store.Module7;
                                 campaignStoreModule.IsActive = 1;
 
@@ -284,7 +294,7 @@ namespace conversion_api.Controllers
                                 campaignStoreModule.CampaignStoreId = campaignStore.Id;
                                 campaignStoreModule.CampaignId = id;
                                 campaignStoreModule.StoreId = campaignStore.StoreId;
-                                campaignStoreModule.ModuleId = 8;
+                                campaignStoreModule.ModuleId = 9;
                                 campaignStoreModule.Content = store.Module8;
                                 campaignStoreModule.IsActive = 1;
 

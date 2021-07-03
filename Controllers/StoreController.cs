@@ -129,8 +129,6 @@ namespace conversion_api.Controllers
             StoreResult result = new StoreResult();
             try
             {
-
-
                 if (id > 0 && stores.Count > 0)
                 {
                     List<Store> validStores = new();
@@ -148,15 +146,34 @@ namespace conversion_api.Controllers
                             validStores.Add(store);
                             storeIds.Add(store.StoreId);
                         }
-                        else
+                        else if (!storeIds.Contains(store.StoreId) && StoreIdExists(store.StoreId, id, cStores))
                         {
-                            invalidStores.Add(store);
+                            store.ModifiedDate = DateTime.Now;
+
+                            Store cStore = cStores.FirstOrDefault(c=>c.StoreId == store.StoreId);
+                            if(cStore != null)
+                            {
+                                store.Id = cStore.Id;
+                                store.CreatedDate = cStore.CreatedDate;
+                                invalidStores.Add(store);
+                            }
+                            storeIds.Add(store.StoreId);
                         }
+                        //else
+                        //{
+                        //    invalidStores.Add(store);
+                        //}
                     }
 
                     if (validStores.Count > 0)
                     {
                         _context.Stores.AddRange(validStores);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    if (invalidStores.Count > 0)
+                    {
+                        _context.Stores.UpdateRange(validStores);
                         await _context.SaveChangesAsync();
                     }
 

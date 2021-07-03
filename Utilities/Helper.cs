@@ -3,6 +3,7 @@ using System.IO;
 using System.Configuration;
 using System.Text.RegularExpressions;
 using System.Collections;
+using System.Linq;
 using System.Text;
 using System.Net;
 using System.Security.Cryptography;
@@ -13,6 +14,7 @@ namespace conversion_api.Utilities
 {
     public static class Helper
     {
+        private static Random random = new Random();
 
         public static DateTime dtShowWord = new DateTime(2001, 1, 1);
 
@@ -24,15 +26,11 @@ namespace conversion_api.Utilities
             return strText;
         }
 
-        public static string GetRandomString(int nLen)
+        public static string GetRandomString(int length)
         {
-            string strRandomString = "";
-            Random ra = new Random();
-            for (int i = 0; i < nLen; i++)
-            {
-                strRandomString += ra.Next(0, 10).ToString();
-            }
-            return strRandomString;
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         /// <summary>
@@ -280,7 +278,7 @@ namespace conversion_api.Utilities
             String shortURL = "";
             try
             {
-                String queryURL = "http://mbeo.co/API.asmx/CreateShortUrl?real_url=" + longUrl;
+                String queryURL = "http://mbeo.co/API.asmx/CreateShortUrl?real_url=" + WebUtility.UrlEncode(longUrl);
 
                 WebClient wc = new WebClient();
                 string response = wc.DownloadString(queryURL);
