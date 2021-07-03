@@ -18,14 +18,14 @@ namespace conversion_api.Models
         }
 
         public virtual DbSet<Campaign> Campaigns { get; set; }
+        public virtual DbSet<CampaignStatistic> CampaignStatistics { get; set; }
         public virtual DbSet<CampaignStore> CampaignStores { get; set; }
         public virtual DbSet<CampaignStoreModule> CampaignStoreModules { get; set; }
         public virtual DbSet<Company> Companies { get; set; }
+        public virtual DbSet<ContentBlock> ContentBlocks { get; set; }
         public virtual DbSet<Module> Modules { get; set; }
         public virtual DbSet<ModuleContact> ModuleContacts { get; set; }
         public virtual DbSet<Store> Stores { get; set; }
-        public virtual DbSet<ContentBlock> ContentBlocks { get; set; }
-        public virtual DbSet<CampaignStatistic> CampaignStatistics { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -98,6 +98,81 @@ namespace conversion_api.Models
                     .HasConstraintName("company_campaign");
             });
 
+            modelBuilder.Entity<CampaignStatistic>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToTable("campaign_statistic");
+
+                entity.HasIndex(e => e.CampaignId, "cms_campaign_idx");
+
+                entity.HasIndex(e => e.CampaignStoreId, "cms_campaign_store");
+
+                entity.HasIndex(e => e.CampaignStoreModuleId, "cms_campaign_store_module_idx");
+
+                entity.HasIndex(e => e.ModuleId, "cms_module_idx");
+
+                entity.HasIndex(e => e.StoreId, "cms_store_idx");
+
+                entity.HasIndex(e => e.Id, "id_UNIQUE")
+                    .IsUnique();
+
+                entity.Property(e => e.Browser)
+                    .HasMaxLength(500)
+                    .HasColumnName("browser");
+
+                entity.Property(e => e.CampaignId).HasColumnName("campaign_id");
+
+                entity.Property(e => e.CampaignStoreId).HasColumnName("campaign_store_id");
+
+                entity.Property(e => e.CampaignStoreModuleId).HasColumnName("campaign_store_module_id");
+
+                entity.Property(e => e.CreatedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("created_date");
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd()
+                    .HasColumnName("id");
+
+                entity.Property(e => e.IpAddress)
+                    .HasMaxLength(30)
+                    .HasColumnName("ip_address");
+
+                entity.Property(e => e.ModuleId).HasColumnName("module_id");
+
+                entity.Property(e => e.Os)
+                    .HasMaxLength(100)
+                    .HasColumnName("os");
+
+                entity.Property(e => e.StoreId).HasColumnName("store_id");
+
+                entity.HasOne(d => d.Campaign)
+                    .WithMany()
+                    .HasForeignKey(d => d.CampaignId)
+                    .HasConstraintName("cms_campaign");
+
+                entity.HasOne(d => d.CampaignStore)
+                    .WithMany()
+                    .HasForeignKey(d => d.CampaignStoreId)
+                    .HasConstraintName("cms_campaign_store");
+
+                entity.HasOne(d => d.CampaignStoreModule)
+                    .WithMany()
+                    .HasForeignKey(d => d.CampaignStoreModuleId)
+                    .HasConstraintName("cms_campaign_store_module");
+
+                entity.HasOne(d => d.Module)
+                    .WithMany()
+                    .HasForeignKey(d => d.ModuleId)
+                    .HasConstraintName("cms_module");
+
+                entity.HasOne(d => d.Store)
+                    .WithMany()
+                    .HasForeignKey(d => d.StoreId)
+                    .HasConstraintName("cms_store");
+            });
+
             modelBuilder.Entity<CampaignStore>(entity =>
             {
                 entity.ToTable("campaign_store");
@@ -110,21 +185,21 @@ namespace conversion_api.Models
 
                 entity.Property(e => e.CampaignId).HasColumnName("campaign_id");
 
-                entity.Property(e => e.StoreId).HasColumnName("store_id");
+                entity.Property(e => e.IsActive).HasColumnName("is_active");
 
-                entity.Property(e => e.UniqueUrl)
-                    .IsRequired()
-                    .HasMaxLength(2000)
-                    .HasColumnName("unique_url");
+                entity.Property(e => e.IsDelete).HasColumnName("is_delete");
 
                 entity.Property(e => e.ShortCode)
                     .IsRequired()
                     .HasMaxLength(100)
                     .HasColumnName("short_code");
 
-                entity.Property(e => e.IsActive).HasColumnName("is_active");
+                entity.Property(e => e.StoreId).HasColumnName("store_id");
 
-                entity.Property(e => e.IsDelete).HasColumnName("is_delete");
+                entity.Property(e => e.UniqueUrl)
+                    .IsRequired()
+                    .HasMaxLength(2000)
+                    .HasColumnName("unique_url");
 
                 entity.HasOne(d => d.Campaign)
                     .WithMany(p => p.CampaignStores)
@@ -155,16 +230,15 @@ namespace conversion_api.Models
 
                 entity.Property(e => e.CampaignStoreId).HasColumnName("campaign_store_id");
 
-                entity.Property(e => e.ModuleId).HasColumnName("module_id");
-
-                entity.Property(e => e.Content)
-                    .HasColumnName("content").HasColumnType("longText");
-
-                entity.Property(e => e.StoreId).HasColumnName("store_id");
+                entity.Property(e => e.Content).HasColumnName("content");
 
                 entity.Property(e => e.IsActive).HasColumnName("is_active");
 
                 entity.Property(e => e.IsDelete).HasColumnName("is_delete");
+
+                entity.Property(e => e.ModuleId).HasColumnName("module_id");
+
+                entity.Property(e => e.StoreId).HasColumnName("store_id");
 
                 entity.HasOne(d => d.Campaign)
                     .WithMany(p => p.CampaignStoreModules)
@@ -191,10 +265,6 @@ namespace conversion_api.Models
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.IsActive).HasColumnName("is_active");
-
-                entity.Property(e => e.IsDelete).HasColumnName("is_delete");
-
                 entity.Property(e => e.CalendarUrl)
                     .HasMaxLength(2000)
                     .HasColumnName("calendar_url");
@@ -219,6 +289,10 @@ namespace conversion_api.Models
                     .HasColumnType("text")
                     .HasColumnName("header_text");
 
+                entity.Property(e => e.IsActive).HasColumnName("is_active");
+
+                entity.Property(e => e.IsDelete).HasColumnName("is_delete");
+
                 entity.Property(e => e.LogoUrl)
                     .HasMaxLength(2000)
                     .HasColumnName("logo_url");
@@ -235,6 +309,31 @@ namespace conversion_api.Models
                 entity.Property(e => e.WebsiteUrl)
                     .HasMaxLength(2000)
                     .HasColumnName("website_url");
+            });
+
+            modelBuilder.Entity<ContentBlock>(entity =>
+            {
+                entity.ToTable("content_block");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.Content)
+                    .IsRequired()
+                    .HasColumnName("content");
+
+                entity.Property(e => e.CreatedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("created_date");
+
+                entity.Property(e => e.IsDelete).HasColumnName("is_delete");
+
+                entity.Property(e => e.ModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("modified_date");
+
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
             });
 
             modelBuilder.Entity<Module>(entity =>
@@ -394,76 +493,6 @@ namespace conversion_api.Models
                     .HasForeignKey(d => d.CompanyId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("company_store");
-            });
-
-            modelBuilder.Entity<ContentBlock>(entity =>
-            {
-                entity.ToTable("content_block");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-
-                entity.Property(e => e.IsDelete).HasColumnName("is_delete");
-
-                entity.Property(e => e.Content)
-                    .HasColumnName("content").HasColumnType("longText");
-
-                entity.Property(e => e.Name)
-                    .HasMaxLength(100)
-                    .HasColumnName("name");
-
-                entity.Property(e => e.CreatedDate)
-                    .HasColumnType("datetime")
-                    .HasColumnName("created_date");
-
-                entity.Property(e => e.ModifiedDate)
-                    .HasColumnType("datetime")
-                    .HasColumnName("modified_date");
-            });
-
-            modelBuilder.Entity<CampaignStatistic>(entity =>
-            {
-                entity.ToTable("campaign_statistic");
-
-                entity.HasIndex(e => e.CampaignId, "cms_campaign_idx");
-
-                entity.HasIndex(e => e.StoreId, "cms_store_idx");
-
-                entity.HasIndex(e => e.ModuleId, "cms_module_idx");
-
-                entity.HasIndex(e => e.CampaignStoreId, "cms_campaign_store");
-
-                entity.HasIndex(e => e.CampaignStoreModuleId, "cms_campaign_store_module_idx");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-
-                entity.Property(e => e.CampaignId).HasColumnName("campaign_id");
-
-                entity.Property(e => e.StoreId).HasColumnName("store_id");
-
-                entity.Property(e => e.ModuleId).HasColumnName("module_id");
-
-                entity.Property(e => e.CampaignStoreId).HasColumnName("campaign_store_id");
-
-                entity.Property(e => e.CampaignStoreModuleId).HasColumnName("campaign_store_module_id");
-
-                entity.Property(e => e.Browser)
-                    .IsRequired()
-                    .HasMaxLength(500)
-                    .HasColumnName("browser");
-
-                entity.Property(e => e.IPAddress)
-                    .IsRequired()
-                    .HasMaxLength(30)
-                    .HasColumnName("ip_address");
-
-                entity.Property(e => e.OS)
-                    .IsRequired()
-                    .HasMaxLength(100)
-                    .HasColumnName("os");
-
-                entity.Property(e => e.CreatedDate)
-                    .HasColumnType("datetime")
-                    .HasColumnName("created_date");
             });
 
             OnModelCreatingPartial(modelBuilder);

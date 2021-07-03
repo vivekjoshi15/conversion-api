@@ -31,9 +31,9 @@ namespace conversion_api.Models
         public string ContactFormUrl { get; set; }
         public string FacebookUrl { get; set; }
         public sbyte? IsActive { get; set; }
-        public sbyte? IsDelete { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
+        public sbyte? IsDelete { get; set; }
 
         public virtual Company Company { get; set; }
         public virtual ICollection<CampaignStoreModule> CampaignStoreModules { get; set; }
